@@ -19,23 +19,31 @@ def get_paths_by_partition(partition: str):
     return image_path, anno_path
 
 
-def save_image_size(partition: str, suffix="_size", name="size"):
+def save_image_size(partition: str, suffix="_size"):
     image_path, anno_path = get_paths_by_partition(partition)
 
     with open(anno_path, 'r') as f:
         annotations = json.load(f)
         print(f"Load: {anno_path}")
 
-    assert name not in annotations.keys()
+    assert "size" not in annotations.keys()
 
     image_size = []
+    filename_list = []
     for anno in tqdm(annotations["annotations"]):
         img_path = os.path.join(image_path, anno['file_name'])
         sz = Image.open(img_path).size
         image_size.append(sz)
+        filename_list.append(anno.pop('file_name'))
+        anno["verb"] = anno.pop("actions")
+        anno["object"] = anno.pop("objects")
 
     # add image_size to annotations
-    annotations[name] = image_size
+    annotations["size"] = image_size
+    annotations["filenames"] = filename_list
+    annotations["verbs"] = annotations.pop("classes")
+    annotations["verb_to_object"] = annotations.pop("action_to_object")
+    annotations["coco_image_id"] = annotations.pop("images")
 
     file_name, file_extension = os.path.splitext(anno_path)
     new_anno_path = file_name + suffix + file_extension
